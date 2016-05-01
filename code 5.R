@@ -85,6 +85,13 @@ combine<-function(text,maxit,states){
 
 ptc<-proc.time()
 test.3<-combine(dataframe,10,10)
+# list of two lists # 
+# first list is a list of four things # 
+# first is first half of text # 
+# second is MvS list of transitions for first half # 
+# BW for first half #
+# MC transition for first half #
+# symmetric second list #
 proc.time()-ptc
 
 text.jm<-test.3[[1]][[1]]
