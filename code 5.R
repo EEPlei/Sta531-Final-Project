@@ -66,8 +66,12 @@ mixture.train<-function(MvS,HMM,MM,text.train,text.test,weights){
   return(sum(abs(rate-truerate)))
 }
 
-test<-mixture.train(xmat,BW,MM,test.text[[1]],test.text[[2]],weights=c(0.2,0,0.9))
-
+test<-mixture.train(xmat,BW,MM,test.text,train.text,weights=c(0.2,0,0.9))
+xmat<-test.3[[1]][[2]]
+BW<-test.3[[1]][[3]]
+MM<-test.3[[1]][[4]]
+test.text<-test.3[[1]][[1]]
+train.text <- test.3[[2]][[1]]
 
 combine<-function(text,maxit,states){
   test.text<-splittext(text)
