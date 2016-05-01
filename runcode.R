@@ -3,6 +3,7 @@ library(tm)
 library(HMM)
 library(stringr)
 library(markovchain) 
+library(gtools)
 
 
 cleanText = function(text){
@@ -232,29 +233,32 @@ test.3<-combine(dataframe,10,10)
 xmat<-test.3[[1]][[2]]
 BW<-test.3[[1]][[3]]
 MM<-test.3[[1]][[4]]
-test.text<-test.3[[1]][[1]]
-train.text <- test.3[[2]][[1]]
+text.test<-test.3[[1]][[1]]
+text.train <- test.3[[2]][[1]]
 
 
 test<-mixture.train(xmat,BW,MM,test.text,train.text,weights=c(0.2,0,0.9))
 
 
-metropolis <- function(weights, MvS, HMM, MM, text.train, text.test, iter){
+metropolis <- function(weights, MvS, HMM, MM, test.text, train.text, iter){
   weight.vec <- matrix(nrow = 3, ncol = iter)
   weight.vec[,1] <- weights
-  
+  dist <- c()
+  dist[1] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,1])
   for(i in 2:iter){
-    dist.old <- mixture.train(MvS, HMM, MM, text.train, text.test, weight.vec[,i-1])
+    dist.old <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i-1])
     new.weights <- rdirichlet(1, weight.vec[,i-1])
     new.weights <- new.weights/sum(new.weights)
-    dist.new <- mixture.train(MvS, HMM, MM, text.train, text.test, new.weights)
+    dist.new <- mixture.train(MvS, HMM, MM, text.test, text.train, new.weights)
     
     if(dist.new < dist.old){
-      weight.vec[i] <- new.weights
+      weight.vec[,i] <- new.weights
     }
-    else(weights.vec[i] <- weights)
-  }
-  return(weights.vec)
+    else(weight.vec[,i] <- weight.vec[,i-1])
+    dist[i] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i])
+    }
+  
+  return(list(weight.vec, dist))
   
 }
 
