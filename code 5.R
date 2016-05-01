@@ -91,3 +91,22 @@ text.jm<-test.3[[1]][[1]]
 xmat.jm<-test.3[[1]][[2]]
 BW.jm<-test.3[[1]][[3]]    
 MM.jm<-test.3[[1]][[4]]
+
+metropolis <- function(weights, MvS, HMM, MM, text.train, text.test, iter){
+  weight.vec <- matrix(nrow = 3, ncol = iter)
+  weight.vec[,1] <- weights
+  
+  for(i in 1:iter){
+    dist.old <- mixture.train(MvS, HMM, MM, text.train, text.test, weight.vec[,i-1])
+    new.weights <- rdirichlet(1, weight.vec[,i-1])
+    new.weights <- new.weights/sum(new.weights)
+    dist.new <- mixture.train(MvS, HMM, MM, text.train, text.test, new.weights)
+    
+    if(dist.new < dist.old){
+      weight.vec[i] <- new.weights
+    }
+    else(weights.vec[i] <- weights)
+  }
+  return(weights.vec)
+  
+}
