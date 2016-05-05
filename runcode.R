@@ -233,8 +233,15 @@ test.3<-combine(dataframe,10,10)
 xmat<-test.3[[1]][[2]]
 BW<-test.3[[1]][[3]]
 MM<-test.3[[1]][[4]]
+# data using to generate # 
 text.test<-test.3[[1]][[1]]
+# holdout #  
 text.train <- test.3[[2]][[1]]
+# generated text # 
+gen.text <- mixture(xmat, BW, MM, text.test, weights = c(0.2, 0.4, 0.4))
+gen.text <- as.vector(unique[gen.text])
+gen.text <- paste(gen.text,sep=" ", collapse = " ")
+
 
 sep.sentences <- function(text){
   sents <- paste(text, collapse = " ")
@@ -242,22 +249,70 @@ sep.sentences <- function(text){
   sents <-sapply(sents, str_trim)
   length.sents <- nchar(sents)
   nums <- unique(sort(length.sents, decreasing = FALSE))
+  nums <- nums[nums!=0]
   sents2 <- list()
   for(i in 1:length(nums)){
-    sents2[[i]] <- sents[which(length.sents == nums[i])]
+    sents2[[i]] <- unique(sents[which(length.sents == nums[i])])
   }
-  sents2 <- unlist(sents2)
+  names(sents2) <- nums
+  
   return(sents2)
 }
 
+holdout <- sep.sentences(text.train)
+orig <- sep.sentences(text.test)
+gen <- sep.sentences(gen.text)
 
-test<-mixture.train(xmat,BW,MM,test.text,train.text,weights=c(0.2,0,0.9))
+close.match <- function(comp, orig){
+  comp.num <- as.numeric(names(comp))
+  orig.num <- as.numeric(names(orig))
+  min.value <- c()
+  for(i in 1:length(orig)){
+    min.value[i] <- which.min(abs(orig.num[i]- comp.num))
+  }
+  dist.value <- c()
+  for(i in 1:length(orig)){
+    dist.value[i] <- mean(adist(orig[[i]], comp[[min.value[i]]]))
+  }
+  return(dist.value)
+}
+
+close.match(gen, orig)
 
 
+# bw, mm, mvs # 
+
+#[1]   8.00000  15.00000  19.00000  24.00000  24.66667  24.66667  28.75000  33.00000  39.00000  39.00000  40.00000  55.50000  82.00000 164.00000 178.00000
+#[16] 342.00000 373.00000 430.00000 weights = 1/3, 1/3, 1/3
+
+#10.0  14.0  20.0  22.0  23.0  22.0  39.5  38.0  41.0  47.0  44.0  46.0  81.0 167.0 189.0 349.0 403.0 447.0 weights = 1, 0, 0
+
+#11.0  16.5  19.0  22.0  25.0  25.0  31.0  33.0  38.0  43.0  40.0  54.0  83.0 189.0 191.0 371.0 396.0 460.0 weights = 0, 1, 0 
+
+#0.0   0.0  21.0   0.0   0.0   0.0  15.5   0.0   0.0  43.0   0.0   0.0  88.0 179.0 155.0 186.0 292.0 339.0 weights = 0, 0, 1
+
+#  [1]  13.00000  14.00000  21.00000  23.00000  22.00000  24.00000  27.50000  32.00000  43.00000  47.33333  45.00000  53.00000  86.00000 180.00000 194.00000
+# [16] 370.00000 396.00000 453.00000 weights = 0.2, 0.4, 0.4
+
+
+# MVS, MM, BW #
 metropolis <- function(weights, MvS, HMM, MM, test.text, train.text, iter){
+  
+  gen.text <- mixture(xmat, BW, MM, text.test, weights)
+  gen.text <- as.vector(unique[gen.text])
+  gen.text <- paste(gen.text,sep=" ", collapse = " ")
+  
+  
+  holdout <- sep.sentences(text.train)
+  orig <- sep.sentences(text.test)
+  gen <- sep.sentences(gen.text)
+  
+  
   weight.vec <- matrix(nrow = 3, ncol = iter)
   weight.vec[,1] <- weights
+  
   dist <- c()
+  
   dist[1] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,1])
   for(i in 2:iter){
     dist.old <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i-1])
@@ -270,10 +325,19 @@ metropolis <- function(weights, MvS, HMM, MM, test.text, train.text, iter){
     }
     else(weight.vec[,i] <- weight.vec[,i-1])
     dist[i] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i])
-    }
+  }
   
   return(list(weight.vec, dist))
   
+}
+
+mixture.train.2 <- function(MvS,HMM,MM,text.train,gen.text,weights){
+  
+  
+  # note that by default a string with the same length as the input text is generated
+  #truerate<-scale(c(sort(table(dataframe.test),decreasing=TRUE)[1:20]))
+  #rate<-scale(c(sort(table(xseq),decreasing=TRUE)[1:20]))
+  #return(sum(abs(rate-truerate)))
 }
 
 
