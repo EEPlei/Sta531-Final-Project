@@ -236,6 +236,20 @@ MM<-test.3[[1]][[4]]
 text.test<-test.3[[1]][[1]]
 text.train <- test.3[[2]][[1]]
 
+sep.sentences <- function(text){
+  sents <- paste(text, collapse = " ")
+  sents <- strsplit(sents, "[.]")
+  sents <-sapply(sents, str_trim)
+  length.sents <- nchar(sents)
+  nums <- unique(sort(length.sents, decreasing = FALSE))
+  sents2 <- list()
+  for(i in 1:length(nums)){
+    sents2[[i]] <- sents[which(length.sents == nums[i])]
+  }
+  sents2 <- unlist(sents2)
+  return(sents2)
+}
+
 
 test<-mixture.train(xmat,BW,MM,test.text,train.text,weights=c(0.2,0,0.9))
 
