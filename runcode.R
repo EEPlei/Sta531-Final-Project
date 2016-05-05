@@ -294,50 +294,84 @@ close.match(gen, orig)
 #  [1]  13.00000  14.00000  21.00000  23.00000  22.00000  24.00000  27.50000  32.00000  43.00000  47.33333  45.00000  53.00000  86.00000 180.00000 194.00000
 # [16] 370.00000 396.00000 453.00000 weights = 0.2, 0.4, 0.4
 
+# alpha # 
+wordcompare<-function(seq1,seq2,topwords){
+  truerate<-scale(c(sort(table(seq1),decreasing=TRUE)[1:topwords]))
+  rate<-scale(c(sort(table(seq2),decreasing=TRUE)[1:topwords]))
+  return(sum(abs(rate-truerate)))
+}
+# gen.seq comes from mixture
+# second argument any vector of words or numbers 
+# third argument how many most frequent words we want to consider
 
-# MVS, MM, BW #
+
+numtotext<-function(seq1,unique){
+  gen.text <- as.vector(unique[seq1])
+  return(gen.text)
+}
+# takes argument vector of numbers and text chunk (non-holdout)
+# returns concatenated text chunk
+
+
+
+# BW, MM, MVS #
 metropolis <- function(weights, MvS, HMM, MM, test.text, train.text, iter){
-  
-  gen.text <- mixture(xmat, BW, MM, text.test, weights)
-  gen.text <- as.vector(unique[gen.text])
-  gen.text <- paste(gen.text,sep=" ", collapse = " ")
-  
-  
-  holdout <- sep.sentences(text.train)
-  orig <- sep.sentences(text.test)
-  gen <- sep.sentences(gen.text)
-  
   
   weight.vec <- matrix(nrow = 3, ncol = iter)
   weight.vec[,1] <- weights
   
+  # alpha # 
   dist <- c()
   
-  dist[1] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,1])
+  
+  
+  seq.gen <-mixture(MvS, HMM, MM, text.test, weight.vec[,1])
+  dist[1] <- wordcompare(seq.gen,text.train,topwords=20)
+  
+  
+  
+  holdout <- sep.sentences(text.train)
+  orig <- sep.sentences(text.test)
+  
   for(i in 2:iter){
-    dist.old <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i-1])
+    seq.gen <- mixture(MvS, HMM, MM, text.test, weight.vec[,i-1])
+    dist.old <-wordcompare(seq.gen,text.train,topwords=20)
+    gen.text <- as.vector(unique[seq.gen])
+    gen.text <- paste(gen.text,sep=" ", collapse = " ")
+    gen <- sep.sentences(gen.text)
+    beta.old <- close.match(gen, orig)
+    delta.old <- sum(beta.old ==0)/length(beta.old)    
+    
     new.weights <- rdirichlet(1, weight.vec[,i-1])
     new.weights <- new.weights/sum(new.weights)
-    dist.new <- mixture.train(MvS, HMM, MM, text.test, text.train, new.weights)
     
-    if(dist.new < dist.old){
+
+    seq.gen <- mixture(MvS, HMM, MM, text.test, new.weights)
+    dist.new <-wordcompare(seq.gen,text.train,topwords=20)  
+    gen.text <- as.vector(unique[seq.gen])
+    gen.text <- paste(gen.text,sep=" ", collapse = " ")
+    gen <- sep.sentences(gen.text)
+    beta.new <- close.match(gen, orig)
+    delta.new <- sum(beta.new == 0)/length(beta.new)
+
+    
+    gamma.old <- dist.old 
+    gamma.new <- dist.new 
+    
+    if(gamma.old < gamma.new){
       weight.vec[,i] <- new.weights
     }
     else(weight.vec[,i] <- weight.vec[,i-1])
-    dist[i] <- mixture.train(MvS, HMM, MM, text.test, text.train, weight.vec[,i])
+    seq.gen<- mixture(MvS, HMM, MM, text.test, weight.vec[,i])
+    dist[i]<-wordcompare(seq.gen,text.train,topwords=20)
   }
   
-  return(list(weight.vec, dist))
+  return(list(t(weight.vec), dist))
   
 }
 
-mixture.train.2 <- function(MvS,HMM,MM,text.train,gen.text,weights){
-  
-  
-  # note that by default a string with the same length as the input text is generated
-  #truerate<-scale(c(sort(table(dataframe.test),decreasing=TRUE)[1:20]))
-  #rate<-scale(c(sort(table(xseq),decreasing=TRUE)[1:20]))
-  #return(sum(abs(rate-truerate)))
-}
+
+
+
 
 
